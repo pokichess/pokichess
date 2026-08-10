@@ -389,6 +389,21 @@ body{background:#2d1b00;color:#eee;font-family:'Press Start 2P','Courier New',mo
   box-shadow:0 0 18px #ffd700aa;transition:all .2s;}
 #confirmTrainerBtn:hover{background:#ffed4e;transform:scale(1.05);}
 
+#worldSelectScreen{display:none;position:fixed;inset:0;z-index:900;
+  background:linear-gradient(180deg,#1a3a6a 0%,#2868a8 35%,#88c8e8 60%,#78b830 80%,#4a8820 100%);
+  flex-direction:column;align-items:center;justify-content:center;gap:0;}
+#worldSelectScreen h2{font-size:1.4em;color:#f8d000;text-shadow:3px 3px 0 #a06000;
+  margin-bottom:8px;letter-spacing:2px;}
+#worldSelectScreen .ws-sub{font-size:0.7em;color:#eef;margin-bottom:26px;text-shadow:1px 1px 0 #000;}
+.ws-grid{display:flex;gap:22px;justify-content:center;flex-wrap:wrap;}
+.ws-opt{display:flex;flex-direction:column;align-items:center;width:210px;
+  background:rgba(0,0,0,0.55);border:3px solid #555;border-radius:14px;
+  padding:22px 18px;cursor:pointer;transition:all .2s;text-align:center;}
+.ws-opt:hover{border-color:#ffd700;background:rgba(0,0,0,0.75);transform:translateY(-3px);}
+.ws-opt .ws-icon{font-size:2.4em;margin-bottom:10px;}
+.ws-opt .ws-title{font-size:0.85em;color:#ffd700;letter-spacing:1px;margin-bottom:6px;font-weight:bold;}
+.ws-opt .ws-desc{font-size:0.62em;color:#ccc;line-height:1.5;}
+
 /* ========== RPG OVERWORLD ========== */
 #overworldScreen{display:none;position:fixed;inset:0;z-index:600;background:#1a3a1a;
   flex-direction:column;align-items:center;justify-content:center;}
@@ -874,13 +889,13 @@ body{background:#2d1b00;color:#eee;font-family:'Press Start 2P','Courier New',mo
   </div>
   <button id="titleLeaderboardBtn" onclick="showLeaderboard()">🏆 LEADERBOARD</button>
   <button id="titleAdminBtn" onclick="document.getElementById('adminPanel').style.display='flex'">⚙ ADMIN</button>
-  <button id="titleOnlineBtn" onclick="event.stopPropagation();showMpLobby()">⚡ ONLINE PLAY</button>
+  <button id="titleOnlineBtn" onclick="event.stopPropagation();showMpLobby('chess')">⚡ ONLINE PLAY</button>
 </div>
 
 <!-- MULTIPLAYER LOBBY -->
 <div id="mpLobby">
   <div class="mp-box">
-    <h2>⚡ ONLINE PLAY</h2>
+    <h2 id="mpLobbyTitle">⚡ ONLINE PLAY</h2>
     <!-- World list (default view) -->
     <div id="mpWorldList">
       <div style="display:flex;gap:6px;margin-bottom:10px;">
@@ -888,7 +903,14 @@ body{background:#2d1b00;color:#eee;font-family:'Press Start 2P','Courier New',mo
         <button class="mp-btn" onclick="mpRefreshWorlds()" style="margin:0;padding:8px 14px;" title="Refresh">🔄</button>
       </div>
       <div id="mpWorldItems"><div style="color:#aaa;font-size:0.7em;padding:10px 0;">Loading worlds...</div></div>
-      <button class="mp-btn danger" onclick="closeMpLobby()" style="margin-top:4px;">✕ CANCEL</button>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.15);">
+        <div style="color:#aaa;font-size:0.65em;margin-bottom:6px;text-align:left;">HAVE A ROOM CODE?</div>
+        <div style="display:flex;gap:6px;">
+          <input id="mpJoinCode" maxlength="10" placeholder="ROOM CODE" style="flex:1;margin:0;text-transform:uppercase;" onkeydown="if(event.key==='Enter')mpJoinByCode();">
+          <button class="mp-btn" onclick="mpJoinByCode()" style="margin:0;">▶ JOIN</button>
+        </div>
+      </div>
+      <button class="mp-btn danger" onclick="closeMpLobby()" style="margin-top:10px;">✕ CANCEL</button>
     </div>
     <!-- Create new world view -->
     <div id="mpCreateView" style="display:none;">
@@ -938,6 +960,24 @@ body{background:#2d1b00;color:#eee;font-family:'Press Start 2P','Courier New',mo
   </div>
   <button id="confirmTrainerBtn" onclick="confirmTrainer()">▶ NEW ADVENTURE</button>
   <button id="continueBtn" onclick="continueGame()" style="display:none;">↩ CONTINUE SAVED GAME</button>
+</div>
+
+<!-- WORLD SELECT SCREEN -->
+<div id="worldSelectScreen">
+  <h2>CHOOSE YOUR WORLD</h2>
+  <div class="ws-sub">Walk the region alone, or bring a friend along</div>
+  <div class="ws-grid">
+    <div class="ws-opt" onclick="chooseSingleplayerWorld()">
+      <div class="ws-icon">🧍</div>
+      <div class="ws-title">SINGLEPLAYER</div>
+      <div class="ws-desc">Explore, catch, and battle solo. Your world, your pace.</div>
+    </div>
+    <div class="ws-opt" onclick="chooseMultiplayerWorld()">
+      <div class="ws-icon">🌐</div>
+      <div class="ws-title">MULTIPLAYER</div>
+      <div class="ws-desc">Host or join a friend's server and explore the overworld together.</div>
+    </div>
+  </div>
 </div>
 
 <!-- OVERWORLD SCREEN -->
@@ -1303,6 +1343,22 @@ body{background:#2d1b00;color:#eee;font-family:'Press Start 2P','Courier New',mo
   </div>
 </div>
 
+<div class="modal-overlay" id="skinPaintModal">
+  <div class="modal-box" style="border:2px solid #44ddff;max-width:360px;">
+    <h3 style="color:#44ddff;">🎨 Paint Your Skin</h3>
+    <canvas id="paintPreviewCanvas" width="120" height="130" style="display:block;margin:0 auto 14px;image-rendering:pixelated;background:radial-gradient(circle,#274060,#152238);border-radius:10px;"></canvas>
+    <div id="paintColorRows" style="display:flex;flex-direction:column;gap:8px;text-align:left;"></div>
+    <div style="margin-top:14px;">
+      <div style="font-size:0.65em;color:#aaa;margin-bottom:6px;">FACE</div>
+      <div id="paintFaceRow" style="display:flex;gap:6px;justify-content:center;"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button onclick="closeSkinPainter()" style="flex:1;padding:8px;background:#333;border:none;color:#eee;border-radius:6px;cursor:pointer;font-family:inherit;font-size:0.8em;">Cancel</button>
+      <button onclick="saveCustomSkin()" style="flex:1;padding:8px;background:#44ddff;border:none;color:#0a1a2a;border-radius:6px;cursor:pointer;font-family:inherit;font-size:0.8em;font-weight:bold;">✔ Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="megaModal">
   <div class="modal-box" style="border:2px solid #ffd700;">
     <h3 style="color:#a855f7;">⚡ Mega Evolution!</h3>
@@ -1479,6 +1535,7 @@ function showTitleScreen() {
   ts.style.display='block'; ts.style.opacity='1';
   updateTitleUserHud();
   if(typeof initTitleStars==='function') initTitleStars();
+  if (currentUser && currentUser.hasBlankSkin) ensureCustomTrainerSlot();
 }
 
 function updateTitleUserHud() {
@@ -1684,6 +1741,25 @@ function artUrl(poke) {
   if (poke.mega) return SP + poke.mega.id + '.png'; // mega forms fallback to sprite
   const d = PD[poke.key]; if (!d) return '';
   return (poke.shiny ? ARTS : ART) + d.id + '.png';
+}
+// setBattleSprite — assigns artwork to a battle <img>, with fallbacks so a Pokémon
+// is always visible even if the primary artwork URL fails to load (network hiccup,
+// missing mega artwork, etc.): artwork -> small sprite -> emoji placeholder.
+function setBattleSprite(imgEl, poke) {
+  if (!imgEl || !poke) return;
+  const d = PD[poke.key];
+  const smallUrl = d ? (SP + d.id + '.png') : '';
+  imgEl.onerror = function() {
+    imgEl.onerror = function() {
+      imgEl.onerror = null;
+      imgEl.src = 'data:image/svg+xml,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">' +
+        '<text x="50%" y="58%" font-size="110" text-anchor="middle">❓</text></svg>');
+    };
+    if (smallUrl && imgEl.src.indexOf(smallUrl) === -1) imgEl.src = smallUrl;
+    else imgEl.onerror();
+  };
+  imgEl.src = artUrl(poke);
 }
 // spriteUrl — small sprite (roster thumbnails, draft screen)
 function spriteUrl(poke, back) {
@@ -3228,8 +3304,8 @@ function showBattle(atkPoke, defPoke, moveName, typeMult, callback) {
 
   const ad=PD[atkPoke.key], dd=PD[defPoke.key];
   // Use anime artwork for the battle screen (large, front-facing for both)
-  document.getElementById('atkSprite').src=artUrl(atkPoke);
-  document.getElementById('defSprite').src=artUrl(defPoke);
+  setBattleSprite(document.getElementById('atkSprite'), atkPoke);
+  setBattleSprite(document.getElementById('defSprite'), defPoke);
   document.getElementById('defSprite').style.opacity='1';
   document.getElementById('atkSprite').style.opacity='1';
   document.getElementById('atkHudName').textContent=(atkPoke.mega?atkPoke.mega.name:ad.name)+(atkPoke.shiny?' ✨':'');
@@ -3583,8 +3659,9 @@ function battleClick() {
 // ============================================================
 function onCellClick(r, c) {
   if (!gameActive || aiThinking || awaitingPromo) return;
-  // In MP mode, only allow clicking when it's your turn
-  if (mpActive && !mpIsMyTurn()) return;
+  // In PvP chess MP mode, only allow clicking when it's your turn
+  // (co-op overworld mode also has mpActive=true, but solo battles there aren't turn-gated)
+  if (mpActive && mpPurpose === 'chess' && !mpIsMyTurn()) return;
 
   if (selectedCell) {
     const mv = legalCache.find(m=>m.r===r&&m.c===c);
@@ -3614,10 +3691,11 @@ function doMove(fr, fc, tr, tc, flags, fromRemote) {
   if (!gameActive) return;
   const mover=board[fr][fc];
   if (!mover) return;
-  // Send move to opponent if this is a local move in MP game
-  if (mpActive && !fromRemote) mpSendMove(fr, fc, tr, tc, flags);
+  // Send move to opponent if this is a local move in a PvP chess MP game
+  // (co-op overworld mode also has mpActive=true, but each player's battles are solo — don't sync those)
+  if (mpActive && mpPurpose === 'chess' && !fromRemote) mpSendMove(fr, fc, tr, tc, flags);
   // Update MP indicator with whose turn it will be next
-  if (mpActive) {
+  if (mpActive && mpPurpose === 'chess') {
     const nextTeam = mover.team === 'red' ? 'blue' : 'red';
     const ind = document.getElementById('mpIndicator');
     if (ind) ind.textContent = 'ONLINE: YOU = ' + (mpMyTeam||'').toUpperCase() + ' | ' + (nextTeam === mpMyTeam ? 'YOUR TURN' : "OPP'S TURN");
@@ -4542,6 +4620,24 @@ const TRAINERS = [
 ];
 // kick off async SVG sprite loads as early as possible
 setTimeout(() => { if (typeof preloadTrainerSprites==='function') preloadTrainerSprites(); }, 0);
+
+// --- Custom (shop-bought) skin slot ---
+let customTrainerIdx = -1;
+function ensureCustomTrainerSlot() {
+  if (customTrainerIdx >= 0) return customTrainerIdx;
+  const saved = (currentUser && currentUser.customSkin) || {};
+  TRAINERS.push({
+    name: 'Custom',
+    hat: saved.hat || '#777777', body: saved.body || '#4477aa', skin: saved.skin || '#FDDCAA',
+    pants: saved.pants || '#333344', hair: saved.hair || '#332211', face: saved.face || 'happy',
+    noHat: true, unlockLv: 0, custom: true,
+    ability: 'Trainer\'s Instinct', abilityDesc: 'A jack-of-all-trades — +10% catch rate.',
+    abilityIcon: '🎨', abilityColor: '#aa88ff',
+    catchBonus: 1.10,
+  });
+  customTrainerIdx = TRAINERS.length - 1;
+  return customTrainerIdx;
+}
 
 function activeTrainer() { return TRAINERS[rpgTrainerIdx] || TRAINERS[0]; }
 
@@ -6142,39 +6238,46 @@ function drawBlockChar(ctx, t, cx, topY, sc, dir, walkFrame) {
     } else {
       ctx.fillRect(R(cx-eSpX-eW+sc), R(eyeY-eH-brH-sc), R(eW*1.5), brH);
     }
-    if (t.name==='Brock') {
-      // squinting eyes: arcs
+    const _drawOpenEye = ox => {
+      // outline rect then white sclera
+      ctx.fillStyle=OL; ctx.fillRect(R(cx+ox-eW-1),R(eyeY-eH-1),eW*2+2,eH*2+2);
+      ctx.fillStyle='#fff'; ctx.fillRect(R(cx+ox-eW),R(eyeY-eH),eW*2,eH*2);
+      // flat iris
+      ctx.fillStyle='#2E68CC';
+      ctx.fillRect(R(cx+ox-R(eW*.5)), R(eyeY-R(eH*.4)), eW, R(eH*1.3));
+      // pupil
+      ctx.fillStyle=OL;
+      ctx.fillRect(R(cx+ox-R(eW*.25)), R(eyeY+R(eH*.1)), R(eW*.5), R(eH*.5));
+      // catchlight
+      ctx.fillStyle='rgba(255,255,255,.85)';
+      ctx.fillRect(R(cx+ox-eW+1), R(eyeY-eH+1), Math.max(1,R(sc)), Math.max(1,R(sc)));
+    };
+    const _drawClosedEye = ox => {
       ctx.save(); ctx.strokeStyle=OL; ctx.lineWidth=Math.max(2,R(sc*2.5)); ctx.lineCap='round';
-      const exs = !isSide ? [-eSpX, eSpX] : [-eSpX];
-      exs.forEach(ox => {
-        ctx.beginPath();
-        ctx.moveTo(R(cx+ox-eW), R(eyeY+R(eH*.3)));
-        ctx.quadraticCurveTo(R(cx+ox), R(eyeY-R(eH*.6)), R(cx+ox+eW), R(eyeY+R(eH*.3)));
-        ctx.stroke();
-      });
+      ctx.beginPath();
+      ctx.moveTo(R(cx+ox-eW), R(eyeY+R(eH*.3)));
+      ctx.quadraticCurveTo(R(cx+ox), R(eyeY-R(eH*.6)), R(cx+ox+eW), R(eyeY+R(eH*.3)));
+      ctx.stroke();
       ctx.restore();
+    };
+    const exs = !isSide ? [-eSpX, eSpX] : [-eSpX];
+    if (t.name==='Brock' || t.face==='squint') {
+      exs.forEach(ox => _drawClosedEye(ox));
+    } else if (t.face==='wink') {
+      exs.forEach((ox, idx) => idx===0 ? _drawClosedEye(ox) : _drawOpenEye(ox));
     } else {
-      const exs = !isSide ? [-eSpX, eSpX] : [-eSpX];
-      exs.forEach(ox => {
-        // outline rect then white sclera
-        ctx.fillStyle=OL; ctx.fillRect(R(cx+ox-eW-1),R(eyeY-eH-1),eW*2+2,eH*2+2);
-        ctx.fillStyle='#fff'; ctx.fillRect(R(cx+ox-eW),R(eyeY-eH),eW*2,eH*2);
-        // flat iris
-        ctx.fillStyle='#2E68CC';
-        ctx.fillRect(R(cx+ox-R(eW*.5)), R(eyeY-R(eH*.4)), eW, R(eH*1.3));
-        // pupil
-        ctx.fillStyle=OL;
-        ctx.fillRect(R(cx+ox-R(eW*.25)), R(eyeY+R(eH*.1)), R(eW*.5), R(eH*.5));
-        // catchlight
-        ctx.fillStyle='rgba(255,255,255,.85)';
-        ctx.fillRect(R(cx+ox-eW+1), R(eyeY-eH+1), Math.max(1,R(sc)), Math.max(1,R(sc)));
-      });
+      exs.forEach(ox => _drawOpenEye(ox));
     }
-    // smile
+    // mouth
     ctx.save(); ctx.strokeStyle='#3A2020'; ctx.lineWidth=Math.max(1.5, sc*1.5); ctx.lineCap='round';
     ctx.beginPath();
-    ctx.moveTo(R(cx-3*sc), R(hCY+2*sc));
-    ctx.quadraticCurveTo(R(cx), R(hCY+5*sc), R(cx+3*sc), R(hCY+2*sc));
+    if (t.face==='neutral') {
+      ctx.moveTo(R(cx-2.5*sc), R(hCY+3*sc));
+      ctx.lineTo(R(cx+2.5*sc), R(hCY+3*sc));
+    } else {
+      ctx.moveTo(R(cx-3*sc), R(hCY+2*sc));
+      ctx.quadraticCurveTo(R(cx), R(hCY+5*sc), R(cx+3*sc), R(hCY+2*sc));
+    }
     ctx.stroke(); ctx.restore();
     // Misty blush dots
     if (t.name==='Misty' && !isSide) {
@@ -6474,6 +6577,57 @@ function drawPlayer(ctx) {
   ctx.fillStyle = '#ffd700';
   ctx.font = '6px monospace';
   ctx.fillText(lvTag, cx2, tagY - 1);
+  ctx.restore();
+}
+
+// Draws the other player in a shared multiplayer world (same visual treatment as drawPlayer,
+// but positioned/animated from data received over the PeerJS connection).
+function drawRemotePlayer(ctx) {
+  const rp = mpRemotePlayer;
+  if (!rp || rp.x == null) return;
+  const t = TRAINERS[rp.trainerIdx] || TRAINERS[0];
+  const px = Math.round(rp.x - OW_TILE/2);
+  const py = Math.round(rp.y - OW_TILE/2);
+  const cx2 = px + OW_TILE/2;
+  ctx.save();
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = '#44ddff';
+  ctx.beginPath();
+  ctx.ellipse(cx2, py + OW_TILE - 4, 14, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  const sprImg = _loadTrainerImg(t.name);
+  if (sprImg && sprImg.complete && sprImg.naturalWidth > 0) {
+    const bob = rp.moving ? Math.abs(Math.sin((rp.walkFrame||0) / 6 * Math.PI)) * 4 : 0;
+    const sz = OW_TILE * 1.75;
+    ctx.save();
+    ctx.translate(cx2, py + OW_TILE * 0.9);
+    if (rp.dir === 'right') ctx.scale(-1, 1);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(sprImg, -sz / 2, -sz / 2 - bob - 4, sz, sz);
+    ctx.restore();
+  } else {
+    drawBlockChar(ctx, t, cx2, py + 2, 1, rp.dir || 'down', rp.walkFrame || 0);
+  }
+
+  // Name tag (cyan border distinguishes the friend from the local player)
+  const tagName = rp.username || 'FRIEND';
+  ctx.save();
+  ctx.font = 'bold 7px monospace';
+  ctx.textAlign = 'center';
+  const tw = ctx.measureText(tagName.toUpperCase()).width + 10;
+  const tagY = py - 6;
+  ctx.fillStyle = 'rgba(0,0,0,0.70)';
+  ctx.beginPath();
+  ctx.roundRect(cx2 - tw/2, tagY - 14, tw, 15, 4);
+  ctx.fill();
+  ctx.strokeStyle = '#44ddff';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(tagName.toUpperCase(), cx2, tagY - 5);
   ctx.restore();
 }
 
@@ -6789,6 +6943,7 @@ function drawOverworld() {
 
   // Draw player in world space (camera translation handles the offset)
   drawPlayer(ctx);
+  if (mpOverworldActive) drawRemotePlayer(ctx);
 
   // Draw roaming visible Pokemon + duels + boss NPCs
   const nowD = Date.now();
@@ -8449,10 +8604,10 @@ function startFRBattle() {
   const pd = PD[playerKey], ed = PD[wildPokemon];
   document.getElementById('frPlayerName').textContent = (pd ? pd.name : playerKey).toUpperCase();
   document.getElementById('frPlayerLv').textContent = 'Lv' + playerPoke.level;
-  document.getElementById('frPlayerSprite').src = artUrl(playerPoke);
+  setBattleSprite(document.getElementById('frPlayerSprite'), playerPoke);
   document.getElementById('frEnemyName').textContent = (ed ? ed.name : wildPokemon).toUpperCase();
   document.getElementById('frEnemyLvRow').textContent = 'Lv' + enemyPoke.level;
-  document.getElementById('frEnemySprite').src = artUrl(enemyPoke);
+  setBattleSprite(document.getElementById('frEnemySprite'), enemyPoke);
   frUpdateHpBars();
 
   document.getElementById('frBattleScreen').style.display = 'flex';
@@ -9295,7 +9450,7 @@ function confirmTrainer() {
     saveUser(currentUser);
   }
 
-  _startOverworld();
+  showWorldSelectScreen();
 }
 
 function continueGame() {
@@ -9303,7 +9458,25 @@ function continueGame() {
   rpgMode = true;
   rpgTrainerIdx = currentUser.trainerIdx != null ? currentUser.trainerIdx : 0;
   rpgBadges = [...currentUser.badgeList];
+  showWorldSelectScreen();
+}
+
+// ============================================================
+// WORLD SELECT (singleplayer vs multiplayer overworld)
+// ============================================================
+function showWorldSelectScreen() {
+  document.getElementById('trainerSelectScreen').style.display = 'none';
+  document.getElementById('worldSelectScreen').style.display = 'flex';
+}
+
+function chooseSingleplayerWorld() {
+  document.getElementById('worldSelectScreen').style.display = 'none';
   _startOverworld();
+}
+
+function chooseMultiplayerWorld() {
+  document.getElementById('worldSelectScreen').style.display = 'none';
+  showMpLobby('overworld');
 }
 
 // ============================================================
@@ -9452,6 +9625,7 @@ const SHOP_ITEMS = [
   {key:'leftovers',      name:'Leftovers',     icon:'🍖', desc:'Held: Restore 6% HP each turn',              cost:400, type:'held'},
   {key:'shell-bell',     name:'Shell Bell',    icon:'🐚', desc:'Held: Restore HP equal to damage dealt',      cost:400, type:'held'},
   {key:'focus-sash',     name:'Focus Sash',    icon:'🧣', desc:'Held: Survive any hit at full HP with 1 HP', cost:450, type:'held'},
+  {key:'blank-skin',     name:'Blank Skin',    icon:'🎨', desc:'A blank trainer skin — paint your own colors & face!', cost:20, type:'skin'},
 ];
 
 function enterShop() {
@@ -9661,17 +9835,21 @@ function renderShopScreen() {
   if (!catalog) return;
   catalog.innerHTML = '';
   for (const item of SHOP_ITEMS) {
+    const alreadyOwned = item.type === 'skin' && !!(currentUser && currentUser.hasBlankSkin);
     const canAfford = rpgCoins >= item.cost;
     const div = document.createElement('div');
-    div.className = 'shop-item' + (canAfford ? '' : ' shop-item-dim');
+    div.className = 'shop-item' + (canAfford || alreadyOwned ? '' : ' shop-item-dim');
+    const btn = alreadyOwned
+      ? `<button class="si-btn" onclick="openSkinPainter()">🎨 REPAINT</button>`
+      : `<button class="si-btn" ${canAfford?'':'disabled'} onclick="buyShopItem('${item.key}')">BUY</button>`;
     div.innerHTML = `
       <span class="si-icon">${item.icon}</span>
       <div class="si-info">
-        <div class="si-name">${item.name}</div>
+        <div class="si-name">${item.name}${alreadyOwned?' <span style="color:#66dd66;">(Owned)</span>':''}</div>
         <div class="si-desc">${item.desc}</div>
       </div>
-      <div class="si-cost">💰 ${item.cost}</div>
-      <button class="si-btn" ${canAfford?'':'disabled'} onclick="buyShopItem('${item.key}')">BUY</button>`;
+      <div class="si-cost">${alreadyOwned?'':'💰 '+item.cost}</div>
+      ${btn}`;
     catalog.appendChild(div);
   }
 
@@ -9683,11 +9861,20 @@ function renderShopScreen() {
 
 function buyShopItem(itemKey) {
   const item = SHOP_ITEMS.find(i => i.key === itemKey);
-  if (!item || rpgCoins < item.cost) return;
+  if (!item) return;
+  if (item.type === 'skin' && currentUser && currentUser.hasBlankSkin) { openSkinPainter(); return; }
+  if (rpgCoins < item.cost) return;
   rpgCoins -= item.cost;
   if (currentUser) { currentUser.coins = rpgCoins; saveUser(currentUser); }
 
-  if (item.type === 'ball') {
+  if (item.type === 'skin') {
+    if (currentUser) { currentUser.hasBlankSkin = true; saveUser(currentUser); }
+    ensureCustomTrainerSlot();
+    showShopToast('Got a Blank Skin! Opening the painter...');
+    renderShopScreen();
+    openSkinPainter();
+    return;
+  } else if (item.type === 'ball') {
     if (item.key === 'greatball') {
       owGreatBalls = Math.min(99, owGreatBalls + 3);
       if (currentUser) { currentUser.greatBalls = owGreatBalls; saveUser(currentUser); }
@@ -9763,11 +9950,20 @@ function renderCharacterShopSection() {
   grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;';
 
   TRAINERS.forEach((tr, i) => {
-    const unlocked = rpgPlayerLevel >= tr.unlockLv;
+    const unlocked = tr.custom ? !!(currentUser && currentUser.hasBlankSkin) : rpgPlayerLevel >= tr.unlockLv;
     const isActive = rpgTrainerIdx === i;
 
     const card = document.createElement('div');
     card.style.cssText = `background:${isActive?'#2a3a00':'#0a1020'};border:2px solid ${isActive?'#ffd700':unlocked?'#336633':'#333'};border-radius:8px;padding:6px 4px;text-align:center;cursor:${unlocked?'pointer':'default'};opacity:${unlocked?1:0.4};transition:all .15s;position:relative;`;
+
+    if (tr.custom && unlocked) {
+      const paintBtn = document.createElement('button');
+      paintBtn.textContent = '🎨';
+      paintBtn.title = 'Repaint';
+      paintBtn.style.cssText = 'position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);border:1px solid #44ddff;border-radius:4px;font-size:0.7em;cursor:pointer;line-height:1;padding:2px 3px;z-index:2;';
+      paintBtn.onclick = (e) => { e.stopPropagation(); openSkinPainter(); };
+      card.appendChild(paintBtn);
+    }
 
     // Mini canvas preview
     const cv = document.createElement('canvas');
@@ -9778,7 +9974,7 @@ function renderCharacterShopSection() {
       const cx = cv.getContext('2d');
       cx.clearRect(0,0,54,60);
       const spr = _loadTrainerImg(tr.name);
-      if (spr && spr.complete && spr.naturalWidth > 0) {
+      if (spr && spr.complete && spr.naturalWidth > 0 && !tr.custom) {
         cx.drawImage(spr, 0, 4, 54, 54);
       } else {
         drawBlockChar(cx, tr, 27, 6, 1.8, 'down');
@@ -9792,7 +9988,8 @@ function renderCharacterShopSection() {
 
     const descEl = document.createElement('div');
     descEl.style.cssText = `font-size:0.50em;color:${unlocked?'#aaa':'#ff8888'};`;
-    descEl.textContent = unlocked ? (isActive ? '✓ Active' : tr.desc) : `🔒 ${tr.desc}`;
+    descEl.textContent = unlocked ? (isActive ? '✓ Active' : tr.abilityDesc)
+      : (tr.custom ? '🔒 Buy Blank Skin (20💰) above!' : `🔒 ${tr.abilityDesc}`);
     card.appendChild(descEl);
 
     if (unlocked && !isActive) {
@@ -9812,6 +10009,103 @@ function renderCharacterShopSection() {
   section.appendChild(grid);
   const shopEl = document.getElementById('shopScreen');
   if (shopEl) shopEl.appendChild(section);
+}
+
+// ============================================================
+// SKIN PAINTER (blank-skin customization)
+// ============================================================
+const PAINT_PARTS = [
+  {key:'skin',  label:'Skin',  swatches:['#FDDCAA','#F5C69A','#E8B888','#C99866','#A97548','#8B5A2B','#6B4226','#4A2C17']},
+  {key:'hair',  label:'Hair',  swatches:['#111111','#3A2412','#6B3E1F','#8B5A2B','#C9A227','#DDDDDD','#7A2E2E','#2B4A8B']},
+  {key:'body',  label:'Shirt', swatches:['#CC2222','#2266CC','#22AA55','#DDAA22','#8833CC','#EE7722','#333333','#EEEEEE']},
+  {key:'pants', label:'Pants', swatches:['#223355','#333333','#553322','#225533','#552255','#775522','#111111','#888888']},
+  {key:'hat',   label:'Hat',   swatches:['#CC2222','#2266CC','#22AA55','#DDAA22','#8833CC','#EE7722','#333333','#EEEEEE']},
+];
+const PAINT_FACES = [
+  {key:'happy',   icon:'🙂'},
+  {key:'neutral', icon:'😐'},
+  {key:'squint',  icon:'😌'},
+  {key:'wink',    icon:'😉'},
+];
+let _paintDraft = null;
+
+function openSkinPainter() {
+  ensureCustomTrainerSlot();
+  const tr = TRAINERS[customTrainerIdx];
+  _paintDraft = {hat:tr.hat, body:tr.body, skin:tr.skin, pants:tr.pants, hair:tr.hair, face:tr.face || 'happy'};
+  _paintRenderRows();
+  _paintRenderFaceRow();
+  _paintRenderPreview();
+  document.getElementById('skinPaintModal').classList.add('show');
+}
+
+function closeSkinPainter() {
+  document.getElementById('skinPaintModal').classList.remove('show');
+}
+
+function _paintRenderRows() {
+  const wrap = document.getElementById('paintColorRows');
+  wrap.innerHTML = '';
+  for (const part of PAINT_PARTS) {
+    const row = document.createElement('div');
+    row.innerHTML = `<div style="font-size:0.62em;color:#aaa;margin-bottom:3px;">${part.label}</div>`;
+    const swRow = document.createElement('div');
+    swRow.style.cssText = 'display:flex;gap:4px;align-items:center;flex-wrap:wrap;';
+    for (const hex of part.swatches) {
+      const b = document.createElement('button');
+      b.style.cssText = `width:20px;height:20px;border-radius:5px;cursor:pointer;background:${hex};border:2px solid ${_paintDraft[part.key]===hex?'#44ddff':'rgba(255,255,255,0.25)'};`;
+      b.onclick = () => _paintPick(part.key, hex);
+      swRow.appendChild(b);
+    }
+    const picker = document.createElement('input');
+    picker.type = 'color';
+    picker.value = _paintDraft[part.key];
+    picker.style.cssText = 'width:24px;height:24px;border:none;border-radius:5px;cursor:pointer;margin-left:2px;';
+    picker.oninput = (e) => _paintPick(part.key, e.target.value);
+    swRow.appendChild(picker);
+    row.appendChild(swRow);
+    wrap.appendChild(row);
+  }
+}
+
+function _paintPick(part, hex) {
+  _paintDraft[part] = hex;
+  _paintRenderRows();
+  _paintRenderPreview();
+}
+
+function _paintRenderFaceRow() {
+  const wrap = document.getElementById('paintFaceRow');
+  wrap.innerHTML = '';
+  for (const f of PAINT_FACES) {
+    const b = document.createElement('button');
+    b.textContent = f.icon;
+    b.style.cssText = `font-size:1.1em;padding:5px 9px;border-radius:6px;cursor:pointer;background:${_paintDraft.face===f.key?'#44ddff':'#1a2a3a'};border:1px solid #44ddff;`;
+    b.onclick = () => { _paintDraft.face = f.key; _paintRenderFaceRow(); _paintRenderPreview(); };
+    wrap.appendChild(b);
+  }
+}
+
+function _paintRenderPreview() {
+  const cv = document.getElementById('paintPreviewCanvas');
+  const cx = cv.getContext('2d');
+  cx.clearRect(0, 0, cv.width, cv.height);
+  drawBlockChar(cx, Object.assign({name:'Custom', noHat:true}, _paintDraft), cv.width/2, 14, 2, 'down', 0);
+}
+
+function saveCustomSkin() {
+  ensureCustomTrainerSlot();
+  Object.assign(TRAINERS[customTrainerIdx], _paintDraft);
+  rpgTrainerIdx = customTrainerIdx;
+  if (currentUser) {
+    currentUser.customSkin = {..._paintDraft};
+    currentUser.trainerIdx = rpgTrainerIdx;
+    saveUser(currentUser);
+  }
+  closeSkinPainter();
+  updateAbilityHud();
+  renderShopScreen();
+  showShopToast('Skin saved and equipped!');
 }
 
 function showStoneTargetPicker(stoneKey) {
@@ -10051,6 +10345,10 @@ initDraft();
 let mpPeer = null, mpConn = null, mpIsHost = false, mpActive = false;
 let mpMyTeam = null; // 'red' (host) or 'blue' (guest)
 let mpWorldId = null; // server world ID for the hosted world
+let mpPurpose = 'chess'; // 'chess' (PvP chess match) or 'overworld' (co-op world)
+let mpOverworldActive = false; // true once two players are sharing the same overworld
+let mpRemotePlayer = null; // {x,y,dir,walkFrame,moving,trainerIdx,username} for the other player
+let mpOwSyncTimer = null;
 
 // ── View helpers ─────────────────────────────────────────────────
 function _mpShowOnly(id) {
@@ -10059,9 +10357,19 @@ function _mpShowOnly(id) {
   });
 }
 
-function showMpLobby() {
+function showMpLobby(purpose) {
+  mpPurpose = purpose || 'chess';
+  const title = document.getElementById('mpLobbyTitle');
+  if (title) title.textContent = mpPurpose === 'overworld' ? '🌐 MULTIPLAYER WORLD' : '⚡ ONLINE PLAY';
   document.getElementById('mpLobby').style.display = 'flex';
   mpShowWorldList();
+}
+
+function mpJoinByCode() {
+  const el = document.getElementById('mpJoinCode');
+  const code = (el.value || '').trim().toUpperCase();
+  if (!code) { el.focus(); return; }
+  mpJoinWorld(null, code);
 }
 
 function mpShowWorldList() {
@@ -10080,6 +10388,10 @@ function closeMpLobby() {
   document.getElementById('mpLobby').style.display = 'none';
   if (mpPeer && !mpActive) { mpPeer.destroy(); mpPeer = null; }
   if (mpWorldId) _mpCloseWorld();
+  // Cancelling out of a world-select-initiated lobby drops back to the world picker
+  if (!mpActive && mpPurpose === 'overworld' && rpgMode) {
+    document.getElementById('worldSelectScreen').style.display = 'flex';
+  }
 }
 
 function _mpSetStatus(msg, isJoin) {
@@ -10198,7 +10510,14 @@ function _mpSetupConn() {
       mpActive = false;
       if (mpIsHost) _mpCloseWorld();
       document.getElementById('mpIndicator').style.display = 'none';
-      alert('Opponent disconnected.');
+      if (mpOverworldActive) {
+        mpOverworldActive = false;
+        mpRemotePlayer = null;
+        if (mpOwSyncTimer) { clearInterval(mpOwSyncTimer); mpOwSyncTimer = null; }
+        alert('Your friend disconnected. You\'re exploring solo now.');
+      } else {
+        alert('Opponent disconnected.');
+      }
     }
   });
 }
@@ -10208,11 +10527,30 @@ function _mpStartGame() {
   document.getElementById('titleScreen').style.display = 'none';
   const ind = document.getElementById('mpIndicator');
   ind.style.display = 'block';
-  ind.textContent = 'ONLINE | YOU = ' + (mpMyTeam === 'red' ? 'RED' : 'BLUE') + ' | Drafting...';
   if (currentUser && currentUser.trainerIdx != null) {
     rpgTrainerIdx = currentUser.trainerIdx;
   }
-  _mpLaunchChess();
+  if (mpPurpose === 'overworld') {
+    ind.textContent = 'ONLINE WORLD | ' + (mpMyTeam === 'red' ? 'HOST' : 'GUEST');
+    _mpLaunchOverworldCoop();
+  } else {
+    ind.textContent = 'ONLINE | YOU = ' + (mpMyTeam === 'red' ? 'RED' : 'BLUE') + ' | Drafting...';
+    _mpLaunchChess();
+  }
+}
+
+function _mpLaunchOverworldCoop() {
+  // Both players keep their own trainer/save state; they just share the same overworld view.
+  document.getElementById('worldSelectScreen').style.display = 'none';
+  mpOverworldActive = true;
+  mpRemotePlayer = null;
+  _startOverworld();
+  mpConn.send({type:'ow_hello', trainerIdx: rpgTrainerIdx, username: currentUser ? currentUser.username : 'Trainer'});
+  if (mpOwSyncTimer) clearInterval(mpOwSyncTimer);
+  mpOwSyncTimer = setInterval(() => {
+    if (!mpActive || !mpConn) return;
+    mpConn.send({type:'ow_pos', x: owP.x, y: owP.y, dir: owP.dir, walkFrame: owP.walkFrame, moving: !!owP._moving});
+  }, 150);
 }
 
 function _mpLaunchChess() {
@@ -10303,12 +10641,23 @@ function mpHandleData(data) {
     mpOpponentDraft = data.choices;
     if (mpMyReadySent) _mpBothReady();
     // else: wait for local player to click Ready
+  } else if (data.type === 'ow_hello') {
+    // Friend's trainer identity for the shared overworld
+    mpRemotePlayer = Object.assign({x: owP.x, y: owP.y, dir:'down', walkFrame:0, moving:false}, mpRemotePlayer, {
+      trainerIdx: data.trainerIdx, username: data.username
+    });
+  } else if (data.type === 'ow_pos') {
+    // Friend's live position in the shared overworld
+    if (!mpRemotePlayer) mpRemotePlayer = {trainerIdx: 0, username: 'Friend'};
+    mpRemotePlayer.x = data.x; mpRemotePlayer.y = data.y;
+    mpRemotePlayer.dir = data.dir; mpRemotePlayer.walkFrame = data.walkFrame;
+    mpRemotePlayer.moving = data.moving;
   }
 }
 
-// Helper: is it our turn in a multiplayer game?
+// Helper: is it our turn in a multiplayer PvP chess game?
 function mpIsMyTurn() {
-  if (!mpActive) return true; // solo: always your turn
+  if (!mpActive || mpPurpose !== 'chess') return true; // solo (or co-op world): always your turn
   return (mpMyTeam === turn);
 }
 </script>
